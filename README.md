@@ -1,4 +1,4 @@
-#G2QL - Geode GraphQL Extension
+# G2QL - Geode GraphQL Extension
 
 I have been questioning about GraphQL - “If GrpahQL is considered as a query language for APIs. Can this be a query language for a database?” - and the result is this library “*G2QL - Geode GraphQL Extension*”. 
 
