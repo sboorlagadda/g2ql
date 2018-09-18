@@ -1,7 +1,5 @@
 # G2QL - Geode GraphQL Extension
 
-I have been questioning about GraphQL - “If GrpahQL is considered as a query language for APIs. Can this be a query language for a database?” - and the result is this library “*G2QL - Geode GraphQL Extension*”. 
-
 Despite its name, GraphQL was not meant to be SQL for graph databases. Instead, GraphQL is an API query language developed by Facebook to improve the performance of interactions between a server and a client, such as a web browser or mobile app.
 
 **GraphQL = Projection + Composition** for your APIs.
@@ -10,17 +8,21 @@ Despite its name, GraphQL was not meant to be SQL for graph databases. Instead, 
 * **Composition** Client can fetch multiple resources in a single query. Avoiding multiple back-to-back server requests means significantly less latency to complete loading data on the client.
 
 ## Why G2QL?
-The same problems that GraphQL helps avoid in the client-server setting now arise between the server and the database.
+
+G2QL is an extension that adds a new query language for your Apache Geode™ or Pivotal GemFire clusters that allows users to build web & mobile applications using any standard GraphQL libraries. G2QL provides an out-of-box experience by defining GraphQL schema through introspection. G2QL can be deployed to any Geode cluster and serves a GraphQL endpoint from an embedded jetty server, just like Geode’s REST endpoint.
+
+G2QL aims to provide an out-of-box solution,
+ * For anyone looking to add GraphQL to an existing microservice architecture.
+ * For anyone dealing with object graphs.
+
+GraphQL is a solution for reducing API chatter between applications and backend services. It is easy to adapt GraphQL as a layer on top of existing microservices, without realizing that the problems that GraphQL helps to solve between apps and backend now arises between the GraphQL endpoint and backend services. To overcome this, caching is then added to the GraphQL endpoint. Without caching, a GraphQL server is inefficient and fetches a single entity several times from the underlying source. With GraphQL as a query language, Geode can provide an out-of-box solution for anyone adapting GraphQL technology. 
+
+G2QL is also a solution for users who have been grappling with how to deal with object graphs and relationships in Geode. With G2QL, users can use standard GraphQL libraries to query/mutate object graphs, and G2QL takes care of retrieving/storing data to respective Regions holding underlying domain models.
 
 ![](assets/graphql.png)
 
 While adding cache to GraphQL server is a natural solution, **G2QL** takes a reverse approach by adding GraphQL to a distributed cache.
  
-G2QL is available as a jar and can be deployed to any Geode cache servers(or accessors), when deployed it introspects region configuration and creates GraphQL types for every Region.ValueConstraint and serves GraphQL endpoint from an embedded jetty server. 
-
-Developer experience was key for GraphQL success and thus a goal for G2QL. G2QL plans to provide an OOB experience for Geode users by introspecting region and index configurations.
-But in order to support object graphs (one-to-many eg: user -> friends, customer -> orders) users ca  annotate the fields so G2QL can infer and support nested object queries.
-
 ### G2QL Annotations
 
 Users can use G2QL annotations to control introspection. Assuming user has a region /Person<String, Person>, then annotate the field to let G2QL infer the relationships.
