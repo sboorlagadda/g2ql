@@ -202,6 +202,76 @@ public class GraphQLExecutorTest {
   }
 
   @Test
+  public void testPutFoo() {
+    Region<String, String> region = mock(Region.class);
+    RegionAttributes<String, String> regionAttributes = mock(RegionAttributes.class);
+
+    doReturn(Stream.of(region).collect(toSet())).when(cache).rootRegions();
+    doReturn(region).when(cache).getRegion("Foo");
+    doReturn("Foo").when(region).getName();
+    doReturn(regionAttributes).when(region).getAttributes();
+    doReturn(String.class).when(regionAttributes).getKeyConstraint();
+    doReturn(String.class).when(regionAttributes).getValueConstraint();
+
+    doReturn(null).when(region).put("1", "One");
+    doReturn("One").when(region).put("2", "Two");
+
+    String query =
+        "mutation PutFoo($key: String, $value: String) {\n  putFoo(key: $key, value: $value)\n}\n";
+    Map<String, Object> variables = new HashMap<>();
+    variables.put("key", "1");
+    variables.put("value", "One");
+    GraphQLExecutor executor = new GraphQLExecutor(cache);
+    ExecutionResult result = executor.execute(query, variables, "PutFoo");
+    assertThat(result).isNotNull();
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=null}");
+
+    variables = new HashMap<>();
+    variables.put("key", "2");
+    variables.put("value", "Two");
+
+    result = executor.execute(query, variables, "PutFoo");
+    assertThat(result).isNotNull();
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=One}");
+  }
+
+  @Test
+  public void testPutFooWithOutExplicitValueClass() {
+    Region<String, String> region = mock(Region.class);
+    RegionAttributes<String, String> regionAttributes = mock(RegionAttributes.class);
+
+    doReturn(Stream.of(region).collect(toSet())).when(cache).rootRegions();
+    doReturn(region).when(cache).getRegion("Foo");
+    doReturn("Foo").when(region).getName();
+    doReturn(regionAttributes).when(region).getAttributes();
+
+    doReturn(null).when(region).put("1", "One");
+    doReturn("One").when(region).put("2", "Two");
+
+    String query =
+        "mutation PutFoo($key: String, $value: String) {\n  putFoo(key: $key, value: $value)\n}\n";
+    Map<String, Object> variables = new HashMap<>();
+    variables.put("key", "1");
+    variables.put("value", "One");
+    GraphQLExecutor executor = new GraphQLExecutor(cache);
+    ExecutionResult result = executor.execute(query, variables, "PutFoo");
+    assertThat(result).isNotNull();
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=null}");
+
+    variables = new HashMap<>();
+    variables.put("key", "2");
+    variables.put("value", "Two");
+
+    result = executor.execute(query, variables, "PutFoo");
+    assertThat(result).isNotNull();
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=One}");
+  }
+
+  @Test
   public void testFoos() {
     Map<String, String> regionData = new HashMap<>();
 

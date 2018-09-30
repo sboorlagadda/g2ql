@@ -21,4 +21,14 @@ public class JacksonDeserializationTest {
     assertThat(graphQLRequest.getQuery())
         .isEqualTo("{\n  Person(key: \"1\") {\n    id\n    firstName\n  }\n}\n");
   }
+
+  @Test
+  public void testMutationDeserialization() throws IOException {
+    String request = "{\"query\":\"mutation PutFoo($key: String, $value: String) {\\n  putFoo(key: $key, value: $value)\\n}\\n\",\"variables\":{\"key\":\"3\",\"value\":\"Three\"},\"operationName\":\"PutFoo\"}";
+
+    ObjectMapper mapper = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+    QueryHandler.GraphQLRequest graphQLRequest =
+        mapper.readValue(request, QueryHandler.GraphQLRequest.class);
+    assertThat(graphQLRequest).isNotNull();
+  }
 }

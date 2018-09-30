@@ -26,26 +26,13 @@ public class GeodePutDataFetcher implements DataFetcher {
 
   @Override
   public Object get(DataFetchingEnvironment environment) {
-    Object key = convertScalarValue(environment.getArgument("key"));
+    Object key = environment.getArgument("key");
     Object value = environment.getArgument("value");
 
-    logger.info("GeodeDataFetcher - put - key:" + key  + ", value=" + value);
+    logger.info("GeodeDataFetcher - put - key:" + key + ", value=" + value);
     if (key == null)
       return "{}";
     Region region = cache.getRegion(regionName);
     return region.put(key, value);
-  }
-
-  protected Object convertScalarValue(Value value) {
-    if (value instanceof StringValue)
-      return ((StringValue) value).getValue();
-    else if (value instanceof IntValue)
-      return ((IntValue) value).getValue();
-    else if (value instanceof BooleanValue)
-      return ((BooleanValue) value).isValue();
-    else if (value instanceof FloatValue)
-      return ((FloatValue) value).getValue();
-
-    return value.toString();
   }
 }

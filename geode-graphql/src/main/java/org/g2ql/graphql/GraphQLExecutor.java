@@ -1,5 +1,7 @@
 package org.g2ql.graphql;
 
+import static graphql.ExecutionInput.newExecutionInput;
+
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -68,8 +70,15 @@ public class GraphQLExecutor {
   public ExecutionResult execute(String query, Map<String, Object> arguments) {
     if (arguments == null)
       return graphQL.execute(query);
-    return graphQL
-        .execute(ExecutionInput.newExecutionInput().query(query).variables(arguments).build());
+    return graphQL.execute(newExecutionInput().query(query).variables(arguments).build());
+  }
+
+  public ExecutionResult execute(String query, Map<String, Object> arguments,
+      String operationName) {
+    if (arguments == null)
+      return graphQL.execute(query);
+    return graphQL.execute(
+        newExecutionInput().query(query).operationName(operationName).variables(arguments).build());
   }
 
   /**

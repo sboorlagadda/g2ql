@@ -38,7 +38,7 @@ public class QueryHandler extends AbstractHandler {
 
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request,
-      HttpServletResponse response) throws IOException {
+      HttpServletResponse response) {
     if ("/graphql".equals(target)) {
       baseRequest.setHandled(true);
       handleGraphql(request, response);
@@ -73,7 +73,7 @@ public class QueryHandler extends AbstractHandler {
           path = request.getServletPath();
         }
         if (path.contentEquals("/graphql/schema.json")) {
-          query(IntrospectionQuery.INTROSPECTION_QUERY, new HashMap<>(), response);
+          query(IntrospectionQuery.INTROSPECTION_QUERY, response);
         } else {
           if (queryAsParameter != null) {
             final Map<String, Object> variables = new HashMap<>();
@@ -92,6 +92,10 @@ public class QueryHandler extends AbstractHandler {
         GraphQLRequest graphQLRequest = mapper.readValue(requestBody, GraphQLRequest.class);
         logger
             .info("QueryHandler - handleGraphql - query from body:" + graphQLRequest + " received");
+        if (graphQLRequest.operationName != null) {
+          query(graphQLRequest.getQuery(), graphQLRequest.getVariables(),
+              graphQLRequest.operationName, response);
+        }
         query(graphQLRequest.getQuery(), graphQLRequest.getVariables(), response);
       }
     } catch (IOException ioe) {
@@ -129,9 +133,20 @@ public class QueryHandler extends AbstractHandler {
     }
   }
 
+  private void query(String query, HttpServletResponse response) throws IOException {
+    ExecutionResult executionResult = executor.execute(query);
+    returnAsJson(response, executionResult);
+  }
+
   private void query(String query, Map<String, Object> variables, HttpServletResponse response)
       throws IOException {
     ExecutionResult executionResult = executor.execute(query, variables);
+    returnAsJson(response, executionResult);
+  }
+
+  private void query(String query, Map<String, Object> variables, String operationName,
+      HttpServletResponse response) throws IOException {
+    ExecutionResult executionResult = executor.execute(query, variables, operationName);
     returnAsJson(response, executionResult);
   }
 
