@@ -1,12 +1,8 @@
 package org.g2ql.server;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import graphql.ExecutionResult;
 import graphql.introspection.IntrospectionQuery;
 import org.apache.geode.cache.Cache;
@@ -92,11 +88,12 @@ public class QueryHandler extends AbstractHandler {
         GraphQLRequest graphQLRequest = mapper.readValue(requestBody, GraphQLRequest.class);
         logger
             .info("QueryHandler - handleGraphql - query from body:" + graphQLRequest + " received");
-        if (graphQLRequest.operationName != null) {
+        if (graphQLRequest.getOperationName() != null) {
           query(graphQLRequest.getQuery(), graphQLRequest.getVariables(),
-              graphQLRequest.operationName, response);
+              graphQLRequest.getOperationName(), response);
+        } else {
+          query(graphQLRequest.getQuery(), graphQLRequest.getVariables(), response);
         }
-        query(graphQLRequest.getQuery(), graphQLRequest.getVariables(), response);
       }
     } catch (IOException ioe) {
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -161,49 +158,4 @@ public class QueryHandler extends AbstractHandler {
     response.getWriter().write(mapper.writeValueAsString(executionResult.toSpecification()));
   }
 
-  protected static class GraphQLRequest {
-    private String query;
-    @JsonDeserialize(using = QueryHandler.VariablesDeserializer.class)
-    private Map<String, Object> variables = new HashMap<>();
-    private String operationName;
-
-    public String getQuery() {
-      return query;
-    }
-
-    public void setQuery(String query) {
-      this.query = query;
-    }
-
-    public Map<String, Object> getVariables() {
-      return variables;
-    }
-
-    public void setVariables(Map<String, Object> variables) {
-      this.variables = variables;
-    }
-
-    public String getOperationName() {
-      return operationName;
-    }
-
-    public void setOperationName(String operationName) {
-      this.operationName = operationName;
-    }
-
-    @Override
-    public String toString() {
-      return "GraphQLRequest{" + "query='" + query + '\'' + ", variables=" + variables
-          + ", operationName='" + operationName + '\'' + '}';
-    }
-  }
-
-  protected static class VariablesDeserializer extends JsonDeserializer<Map<String, Object>> {
-    @Override
-    public Map<String, Object> deserialize(JsonParser p, DeserializationContext ctxt)
-        throws IOException {
-      return deserializeVariablesObject(p.readValueAs(Object.class),
-          (ObjectMapper) ctxt.findInjectableValue(ObjectMapper.class.getName(), null, null));
-    }
-  }
 }
