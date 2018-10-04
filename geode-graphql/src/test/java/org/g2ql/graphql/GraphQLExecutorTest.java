@@ -12,9 +12,12 @@ import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.cache.query.internal.LinkedResultSet;
+
+import graphql.schema.GraphQLSchema;
 import org.g2ql.categories.UnitTest;
 import org.g2ql.domain.Person;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +29,8 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -56,8 +61,8 @@ public class GraphQLExecutorTest {
     RegionAttributes<String, Person> personRegionAttributes = mock(RegionAttributes.class);
 
     doReturn(Stream.of(personRegion).collect(toSet())).when(cache).rootRegions();
-    doReturn(personRegion).when(cache).getRegion("person");
-    doReturn("person").when(personRegion).getName();
+    doReturn(personRegion).when(cache).getRegion("Person");
+    doReturn("Person").when(personRegion).getName();
     doReturn(personRegionAttributes).when(personRegion).getAttributes();
     doReturn(String.class).when(personRegionAttributes).getKeyConstraint();
     doReturn(Person.class).when(personRegionAttributes).getValueConstraint();
@@ -69,67 +74,90 @@ public class GraphQLExecutorTest {
     friendsDataForPerson1.put("2", person2);
     doReturn(friendsDataForPerson1).when(personRegion).getAll(Stream.of("2").collect(toList()));
 
+    doReturn(null).when(personRegion).put(anyString(), any());
   }
 
   @Test
   public void testPersonWithNoKeysShouldNotReturnAnything() {
-    String query = "query personById\n{\nperson{\nid\nfirstName}\n}";
+    String query = "query personById\n{\nPerson{\nid\nfirstName}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{person={id=null, firstName=null}}");
+    assertThat(result.getData().toString()).isEqualTo("{Person={id=null, firstName=null}}");
   }
 
   @Test
   public void testPersonsWithNoKeysShouldNotReturnAnything() {
-    String query = "query personsById\n{\npersons{\nid\nfirstName}\n}";
+    String query = "query personsById\n{\nPersons{\nid\nfirstName}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{persons=[]}");
+    assertThat(result.getData().toString()).isEqualTo("{Persons=[]}");
   }
 
   @Test
   public void testPersonWithKey() {
     String query =
-        "query personById\n{\nperson(key: \"1\"){\nid\nfirstName\naddress{\nstreet\ncity\n}\n}\n\n}\"}";
+        "query personById\n{\nPerson(key: \"1\"){\nid\nfirstName\naddress{\nstreet\ncity\n}\n}\n\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.getData().toString())
-        .isEqualTo("{person={id=1, firstName=Luke, address={street=1 Pike Street, city=Seattle}}}");
+        .isEqualTo("{Person={id=1, firstName=Luke, address={street=1 Pike Street, city=Seattle}}}");
+  }
+
+  @Test
+  public void testPutPerson() {
+    String m =
+        "mutation CreatePerson($key: String, $person: PersonInput) {\n  putPerson(key: $key, Person:$person) {\n    firstName\n    lastName\n  }\n}\n";
+
+    Map<String, String> person = new HashMap<>();
+    person.put("id", "3");
+    person.put("firstName", "Elon");
+    person.put("lastName", "Mush");
+
+    Map<String, Object> variables = new HashMap<>();
+    variables.put("key", "3");
+    variables.put("person", person);
+
+    GraphQLExecutor executor = new GraphQLExecutor(cache);
+    ExecutionResult result = executor.execute(m, variables, "CreatePerson");
+    assertThat(result).isNotNull();
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.getData().toString())
+        .isEqualTo("{putPerson={firstName=Elon, lastName=Mush}}");
   }
 
   @Test
   public void testPersonAndFriendsWithKey() {
     String query =
-        "query personsById\n{\nperson(key: \"1\"){\nid\nfirstName\nfriends{\nfirstName}\n}\n}";
+        "query personsById\n{\nPerson(key: \"1\"){\nid\nfirstName\nfriends{\nfirstName}\n}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.getData().toString())
-        .isEqualTo("{person={id=1, firstName=Luke, friends=[{firstName=James}]}}");
+        .isEqualTo("{Person={id=1, firstName=Luke, friends=[{firstName=James}]}}");
   }
 
   @Test
   public void testPersonsWithMultipleKey() {
-    String query = "query personsById\n{\npersons(key: [\"1\", \"2\"]){\nid\nfirstName}\n}";
+    String query = "query personsById\n{\nPersons(key: [\"1\", \"2\"]){\nid\nfirstName}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.getData().toString())
-        .isEqualTo("{persons=[{id=1, firstName=Luke}, {id=2, firstName=James}]}");
+        .isEqualTo("{Persons=[{id=1, firstName=Luke}, {id=2, firstName=James}]}");
   }
 
   @Test
   public void testPersonByFirstName() throws NameResolutionException, TypeMismatchException,
       QueryInvocationTargetException, FunctionDomainException {
-    String expectedOQL = "SELECT DISTINCT * FROM /person x where x.firstName=$1";
+    String expectedOQL = "SELECT DISTINCT * FROM /Person x where x.firstName=$1";
 
     ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
     Query q = mock(Query.class);
@@ -138,7 +166,7 @@ public class GraphQLExecutorTest {
     doReturn(q).when(queryService).newQuery(expectedOQL);
     doReturn(results).when(q).execute("Luke");
 
-    String query = "query personById\n{\nperson(firstName: \"Luke\"){\nid\nfirstName}\n}";
+    String query = "query personById\n{\nPerson(firstName: \"Luke\"){\nid\nfirstName}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
 
@@ -147,13 +175,13 @@ public class GraphQLExecutorTest {
 
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{person={id=1, firstName=Luke}}");
+    assertThat(result.getData().toString()).isEqualTo("{Person={id=1, firstName=Luke}}");
   }
 
   @Test
   public void testPersonsByMultipleFirstNames() throws NameResolutionException,
       TypeMismatchException, QueryInvocationTargetException, FunctionDomainException {
-    String expectedOQL = "SELECT DISTINCT * FROM /person x where x.firstName=$1";
+    String expectedOQL = "SELECT DISTINCT * FROM /Person x where x.firstName=$1";
 
     ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
     Query q = mock(Query.class);
@@ -166,7 +194,7 @@ public class GraphQLExecutorTest {
     doReturn(jamesResult).when(q).execute("James");
 
     String query =
-        "query personsById\n{\npersons(firstName: [\"Luke\", \"James\"]){\nid\nfirstName}\n}";
+        "query personsById\n{\nPersons(firstName: [\"Luke\", \"James\"]){\nid\nfirstName}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
 
@@ -176,7 +204,7 @@ public class GraphQLExecutorTest {
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.getData().toString())
-        .isEqualTo("{persons=[{id=1, firstName=Luke}, {id=2, firstName=James}]}");
+        .isEqualTo("{Persons=[{id=1, firstName=Luke}, {id=2, firstName=James}]}");
   }
 
   @Test
@@ -225,7 +253,7 @@ public class GraphQLExecutorTest {
     ExecutionResult result = executor.execute(query, variables, "PutFoo");
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{putFoo=null}");
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=One}");
 
     variables = new HashMap<>();
     variables.put("key", "2");
@@ -234,7 +262,7 @@ public class GraphQLExecutorTest {
     result = executor.execute(query, variables, "PutFoo");
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{putFoo=One}");
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=Two}");
   }
 
   @Test
@@ -259,7 +287,7 @@ public class GraphQLExecutorTest {
     ExecutionResult result = executor.execute(query, variables, "PutFoo");
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{putFoo=null}");
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=One}");
 
     variables = new HashMap<>();
     variables.put("key", "2");
@@ -268,7 +296,7 @@ public class GraphQLExecutorTest {
     result = executor.execute(query, variables, "PutFoo");
     assertThat(result).isNotNull();
     assertThat(result.getErrors()).isEmpty();
-    assertThat(result.getData().toString()).isEqualTo("{putFoo=One}");
+    assertThat(result.getData().toString()).isEqualTo("{putFoo=Two}");
   }
 
   @Test

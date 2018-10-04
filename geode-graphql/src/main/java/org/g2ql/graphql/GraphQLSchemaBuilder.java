@@ -107,7 +107,7 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
           .type((GraphQLScalarType) getScalarType(valueClass))
           .argument(getArgument(regionAttributes.getKeyConstraint()))
           .argument(getValueArgument(regionAttributes.getValueConstraint()))
-          .dataFetcher(new GeodePutDataFetcher(cache, regionName)).build();
+          .dataFetcher(new GeodePutDataFetcher(cache, regionName, valueClass)).build();
     } catch (UnsupportedOperationException ex) {
       return newFieldDefinition().name("put" + regionName)
           .description(getSchemaDocumentation(regionAttributes.getValueConstraint()))
@@ -115,7 +115,9 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
               (GraphQLObjectType) getObjectType(regionName, regionAttributes.getValueConstraint()))
           .argument(getArgument(regionAttributes.getKeyConstraint()))
           .argument(getInputArgument(regionName, regionAttributes.getValueConstraint()))
-          .dataFetcher(new GeodeDataFetcher(cache, regionName)).build();
+          .dataFetcher(
+              new GeodePutDataFetcher(cache, regionName, regionAttributes.getValueConstraint()))
+          .build();
     }
   }
 

@@ -119,6 +119,15 @@ public class GraphqlExecutorIntegrationTest {
   }
 
   @Test
+  public void testGraphQLPutPerson() throws IOException {
+    String m = "{\"query\":\"mutation CreatePerson($key: String, $person: PersonInput) {\\n  putPerson(key: $key, Person:$person) {\\n    firstName\\n    lastName\\n    company\\n  }\\n}\\n\",\"variables\":{\"key\":\"3\",\"person\":{\"id\":\"3\",\"firstName\":\"Elon\",\"lastName\":\"Musk\"}},\"operationName\":\"CreatePerson\"}";
+    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+        .bodyString(m, ContentType.TEXT_PLAIN).execute().returnResponse();
+    String responseString = new BasicResponseHandler().handleResponse(response);
+    assertThat(responseString).isEqualTo("{\"data\":{\"putPerson\":\"Three\"}}");
+  }
+
+  @Test
   public void testGraphQLWithMultipleFooKeys() throws IOException {
     String query = "{\"query\":\"{\\nFoos(key : [\\\"1\\\", \\\"2\\\"])\\n}\"}";
     HttpResponse response = Request.Post("http://localhost:3000/graphql")
