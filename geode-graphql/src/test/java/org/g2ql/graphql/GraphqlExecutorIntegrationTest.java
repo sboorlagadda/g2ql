@@ -4,6 +4,12 @@ import org.apache.geode.cache.Region;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.client.ClientCacheFactory;
 import org.apache.geode.cache.client.ClientRegionShortcut;
+import org.apache.geode.cache.query.FunctionDomainException;
+import org.apache.geode.cache.query.NameResolutionException;
+import org.apache.geode.cache.query.QueryInvocationTargetException;
+import org.apache.geode.cache.query.SelectResults;
+import org.apache.geode.cache.query.TypeMismatchException;
+
 import org.g2ql.categories.IntegrationTest;
 import org.g2ql.domain.Person;
 import org.apache.http.HttpResponse;
@@ -96,7 +102,7 @@ public class GraphqlExecutorIntegrationTest {
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo(
-        "{\"data\":{\"Persons\":[{\"firstName\":\"James\",\"age\":60},{\"firstName\":\"Joshua\",\"age\":50}]}}");
+        "{\"data\":{\"Persons\":[{\"firstName\":\"Joshua\",\"age\":50},{\"firstName\":\"James\",\"age\":60}]}}");
   }
 
   @Test
@@ -136,5 +142,19 @@ public class GraphqlExecutorIntegrationTest {
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo("{\"data\":{\"Foos\":[\"One\",\"Two\"]}}");
+  }
+
+  @Test
+  public void testOQLInQuery() throws NameResolutionException, TypeMismatchException,
+      QueryInvocationTargetException, FunctionDomainException {
+    ClientCache cache = new ClientCacheFactory().addPoolLocator("127.0.0.1", 10334)
+        .set("log-level", "WARN").create();
+
+    String[] predicates = {"Joshua", "James"};
+    String query = "select DISTINCT * from /Person x where x.firstName IN set($1, $2)";
+    SelectResults results =
+        (SelectResults) cache.getQueryService().newQuery(query).execute(predicates);
+
+    assertThat(results.asList()).isNotNull();
   }
 }

@@ -179,26 +179,48 @@ public class GraphQLExecutorTest {
   }
 
   @Test
-  public void testPersonsByMultipleFirstNames() throws NameResolutionException,
-      TypeMismatchException, QueryInvocationTargetException, FunctionDomainException {
-    String expectedOQL = "SELECT DISTINCT * FROM /Person x where x.firstName=$1";
+  public void testPersonsWithFirstNames() throws NameResolutionException, TypeMismatchException,
+      QueryInvocationTargetException, FunctionDomainException {
+    String expectedOQL = "SELECT DISTINCT * FROM /Person x where x.firstName IN set($1)";
 
     ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
     Query q = mock(Query.class);
     SelectResults<Person> lukeResult = new LinkedResultSet();
     lukeResult.add(personRegionData.get("1"));
-    SelectResults<Person> jamesResult = new LinkedResultSet();
-    jamesResult.add(personRegionData.get("2"));
     doReturn(q).when(queryService).newQuery(expectedOQL);
     doReturn(lukeResult).when(q).execute("Luke");
-    doReturn(jamesResult).when(q).execute("James");
+
+    String query = "query personsById\n{\nPersons(firstName: [\"Luke\"]){\nid\nfirstName}\n}";
+    GraphQLExecutor executor = new GraphQLExecutor(cache);
+    ExecutionResult result = executor.execute(query);
+
+    verify(queryService, times(1)).newQuery(argumentCaptor.capture());
+    assertThat(argumentCaptor.getAllValues()).contains(expectedOQL);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.getData().toString()).isEqualTo("{Persons=[{id=1, firstName=Luke}]}");
+  }
+
+  @Test
+  public void testPersonsByMultipleFirstNames() throws NameResolutionException,
+      TypeMismatchException, QueryInvocationTargetException, FunctionDomainException {
+    String expectedOQL = "SELECT DISTINCT * FROM /Person x where x.firstName IN set($1, $2)";
+
+    ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
+    Query q = mock(Query.class);
+    SelectResults<Person> results = new LinkedResultSet();
+    results.add(personRegionData.get("1"));
+    results.add(personRegionData.get("2"));
+    doReturn(q).when(queryService).newQuery(expectedOQL);
+    doReturn(results).when(q).execute("Luke", "James");
 
     String query =
         "query personsById\n{\nPersons(firstName: [\"Luke\", \"James\"]){\nid\nfirstName}\n}";
     GraphQLExecutor executor = new GraphQLExecutor(cache);
     ExecutionResult result = executor.execute(query);
 
-    verify(queryService, times(2)).newQuery(argumentCaptor.capture());
+    verify(queryService, times(1)).newQuery(argumentCaptor.capture());
     assertThat(argumentCaptor.getAllValues()).contains(expectedOQL);
 
     assertThat(result).isNotNull();

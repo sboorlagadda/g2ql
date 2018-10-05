@@ -37,8 +37,6 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.g2ql.annotation.GeodeGraphQLArgument;
 import org.g2ql.annotation.GeodeGraphQLConnection;
 import org.g2ql.annotation.GeodeGraphQLDocumentation;
@@ -54,34 +52,29 @@ import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionAttributes;
 
-public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
-  private final static Logger logger = LogManager.getLogger(GraphQLSchemaBuilder.class);
-
+class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
   private final Map<Class<?>, GraphQLType> valueCache = new HashMap<>();
   private Cache cache;
 
-  public GraphQLSchemaBuilder(Cache cache) {
+  GraphQLSchemaBuilder(Cache cache) {
     this.cache = cache;
     super.query(getQueryType());
     super.mutation(getMutationType());
   }
 
-  GraphQLObjectType getQueryType() {
+  private GraphQLObjectType getQueryType() {
     GraphQLObjectType.Builder queryType = newObject().name("QueryType_Geode")
         .description("All encompassing schema for this Geode Cluster");
     Set<Region<?, ?>> userRegions = cache.rootRegions();
-    // Two types for every region (Person, Persons)
+
     userRegions.stream().filter(r -> isNotIgnored(r.getAttributes().getValueConstraint()))
         .forEach(region -> queryType
-            .field(getQueryFieldDefinition(region.getName(), region.getAttributes())));
-    userRegions.stream().filter(r -> isNotIgnored(r.getAttributes().getValueConstraint()))
-        .forEach(region -> queryType.field(
-            getCollectionTypeQueryFieldDefinition(region.getName(), region.getAttributes())));
+            .fields(getQueryFieldDefinition(region.getName(), region.getAttributes())));
 
     return queryType.build();
   }
 
-  GraphQLObjectType getMutationType() {
+  private GraphQLObjectType getMutationType() {
     GraphQLObjectType.Builder mutationType = newObject().name("MutationType_Geode")
         .description("All encompassing schema for this Geode Cluster");
 
@@ -94,7 +87,7 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
     return mutationType.build();
   }
 
-  List<GraphQLFieldDefinition> getMutationFieldDefinition(String regionName,
+  private List<GraphQLFieldDefinition> getMutationFieldDefinition(String regionName,
       RegionAttributes<?, ?> regionAttributes) {
     Class<?> valueClass = regionAttributes.getValueConstraint();
     if (valueClass == null) {
@@ -135,19 +128,25 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
     return mutations;
   }
 
-  GraphQLFieldDefinition getQueryFieldDefinition(String regionName,
+  private List<GraphQLFieldDefinition> getQueryFieldDefinition(String regionName,
       RegionAttributes<?, ?> regionAttributes) {
     Class<?> valueClass = regionAttributes.getValueConstraint();
     if (valueClass == null)
       valueClass = String.class;
 
     String schemaDocumentation = getSchemaDocumentation(valueClass);
-    GeodeDataFetcher dataFetcher = new GeodeDataFetcher(cache, regionName);
 
+    List<GraphQLFieldDefinition> queries = new ArrayList<>();
     if (isBasicAttributeType(valueClass)) {
-      return newFieldDefinition().name(regionName).description(schemaDocumentation)
-          .type((GraphQLScalarType) getScalarType(valueClass)).dataFetcher(dataFetcher)
-          .argument(getArgument(regionAttributes.getKeyConstraint())).build();
+      queries.add(newFieldDefinition().name(regionName).description(schemaDocumentation)
+          .type((GraphQLScalarType) getScalarType(valueClass))
+          .dataFetcher(new GeodeDataFetcher(cache, regionName))
+          .argument(getArgument(regionAttributes.getKeyConstraint())).build());
+
+      queries.add(newFieldDefinition().name(regionName + "s").description(schemaDocumentation)
+          .type(new GraphQLList(getScalarType(valueClass)))
+          .dataFetcher(new GeodeCollectionTypeDataFetcher(cache, regionName))
+          .argument(getListArgument(regionAttributes.getKeyConstraint())).build());
     } else {
       List<GraphQLArgument> arguments = new ArrayList<>();
       arguments.add(getArgument(regionAttributes.getKeyConstraint()));
@@ -157,46 +156,28 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
           .filter(this::isGraphQLArgument).filter(f -> isBasicAttributeType(f.getType()))
           .map(this::getArgumentForField).collect(toList()));
 
-      return newFieldDefinition().name(regionName).description(schemaDocumentation)
-          .type((GraphQLObjectType) getObjectType(regionName, valueClass)).dataFetcher(dataFetcher)
-          .argument(arguments).build();
-    }
-  }
+      queries.add(newFieldDefinition().name(regionName).description(schemaDocumentation)
+          .type((GraphQLObjectType) getObjectType(regionName, valueClass))
+          .dataFetcher(new GeodeDataFetcher(cache, regionName)).argument(arguments).build());
 
-  GraphQLFieldDefinition getCollectionTypeQueryFieldDefinition(String regionName,
-      RegionAttributes<?, ?> regionAttributes) {
-    Class<?> valueClass = regionAttributes.getValueConstraint();
-    if (valueClass == null)
-      valueClass = String.class;
-
-    String schemaDocumentation = getSchemaDocumentation(regionAttributes.getValueConstraint());
-    GeodeCollectionTypeDataFetcher dataFetcher =
-        new GeodeCollectionTypeDataFetcher(cache, regionName);
-
-    if (isBasicAttributeType(valueClass)) {
-      return newFieldDefinition().name(regionName + "s")
-          .description(schemaDocumentation)
-          .type(new GraphQLList(getScalarType(valueClass)))
-          .dataFetcher(dataFetcher)
-          .argument(getListArgument(regionAttributes.getKeyConstraint())).build();
-    } else {
-      List<GraphQLArgument> arguments = new ArrayList<>();
-      arguments.add(getListArgument(regionAttributes.getKeyConstraint()));
+      List<GraphQLArgument> collectionArguments = new ArrayList<>();
+      collectionArguments.add(getListArgument(regionAttributes.getKeyConstraint()));
 
       // add arguments for each field
-      arguments.addAll(Arrays.stream(regionAttributes.getValueConstraint().getDeclaredFields())
-          .filter(this::isGraphQLArgument).filter(f -> isBasicAttributeType(f.getType()))
-          .map(this::getListArgumentForField).collect(toList()));
+      collectionArguments
+          .addAll(Arrays.stream(regionAttributes.getValueConstraint().getDeclaredFields())
+              .filter(this::isGraphQLArgument).filter(f -> isBasicAttributeType(f.getType()))
+              .map(this::getListArgumentForField).collect(toList()));
 
-      return newFieldDefinition().name(regionName + "s")
-          .description(schemaDocumentation)
+      queries.add(newFieldDefinition().name(regionName + "s").description(schemaDocumentation)
           .type(new GraphQLList(getObjectType(regionName, regionAttributes.getValueConstraint())))
-          .dataFetcher(dataFetcher).argument(arguments)
-          .build();
+          .dataFetcher(new GeodeCollectionTypeDataFetcher(cache, regionName))
+          .argument(collectionArguments).build());
     }
+    return queries;
   }
 
-  GraphQLType getScalarType(Class<?> valueClass) {
+  private GraphQLType getScalarType(Class<?> valueClass) {
     if (valueCache.containsKey(valueClass))
       return valueCache.get(valueClass);
 
@@ -205,7 +186,7 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
     return valueType;
   }
 
-  GraphQLType getObjectType(String regionName, Class<?> valueClass) {
+  private GraphQLType getObjectType(String regionName, Class<?> valueClass) {
     if (valueCache.containsKey(valueClass))
       return valueCache.get(valueClass);
 
@@ -217,7 +198,7 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
         .filter(f -> !isConnectionType(f)).map(this::getObjectField).collect(toList());
 
     // connection type
-    fields.addAll(Arrays.stream(valueClass.getDeclaredFields()).filter(f -> isConnectionType(f))
+    fields.addAll(Arrays.stream(valueClass.getDeclaredFields()).filter(this::isConnectionType)
         .map(f -> getConnectionType(regionName, f)).collect(toList()));
 
     GraphQLObjectType answer = objectType.fields(fields).build();
@@ -313,11 +294,10 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
   private GraphQLFieldDefinition getConnectionType(String regionName, Field field) {
     String connectionName = getConnectionName(field);
     GraphQLOutputType connectionType = new GraphQLList(new GraphQLTypeReference(connectionName));
-    GraphQLFieldDefinition connectionDefinition = newFieldDefinition().name(field.getName())
-        .description(getSchemaDocumentation(field)).type(connectionType)
+    return newFieldDefinition().name(field.getName()).description(getSchemaDocumentation(field))
+        .type(connectionType)
         .dataFetcher(new GeodeConnectionTypeDataFetcher(cache, regionName, field.getName()))
         .build();
-    return connectionDefinition;
   }
 
   private boolean isBasicAttributeType(Class type) {
@@ -357,7 +337,7 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
     }
 
     throw new UnsupportedOperationException(
-        "Class could not be mapped to GraphQL: '" + javaType.getClass().getTypeName() + "'");
+        "Class could not be mapped to GraphQL: '" + javaType.getTypeName() + "'");
   }
 
   private String getConnectionName(AnnotatedElement annotatedElement) {
@@ -434,8 +414,7 @@ public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
   private String getAnnotationValue(Annotation a) {
     for (Method method : a.annotationType().getDeclaredMethods()) {
       try {
-        String value = (String) method.invoke(a, (Object[]) null);
-        return value;
+        return (String) method.invoke(a, (Object[]) null);
       } catch (IllegalAccessException | InvocationTargetException e) {
         e.printStackTrace();
       }
