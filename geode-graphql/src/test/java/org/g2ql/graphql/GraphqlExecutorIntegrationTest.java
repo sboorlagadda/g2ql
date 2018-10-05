@@ -124,7 +124,7 @@ public class GraphqlExecutorIntegrationTest {
     HttpResponse response = Request.Post("http://localhost:3000/graphql")
         .bodyString(m, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
-    assertThat(responseString).isEqualTo("{\"data\":{\"putPerson\":\"Three\"}}");
+    assertThat(responseString).isEqualTo("{\"data\":{\"putPerson\":{\"firstName\":\"Elon\",\"lastName\":\"Musk\",\"company\":null}}}");
   }
 
   @Test

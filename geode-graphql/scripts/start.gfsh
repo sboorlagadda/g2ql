@@ -16,6 +16,8 @@ create region --name=Person --type=REPLICATE --value-constraint=org.g2ql.domain.
 
 create region --name=Student --type=REPLICATE --value-constraint=org.g2ql.domain.Student
 
+create region --name=Post --type=REPLICATE --value-constraint=org.g2ql.domain.Post
+
 describe region --name=Person
 
 list functions
