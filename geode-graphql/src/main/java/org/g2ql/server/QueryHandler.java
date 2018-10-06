@@ -49,6 +49,7 @@ public class QueryHandler extends AbstractHandler {
       String queryString = request.getQueryString();
       String queryAsParameter = request.getParameter("query");
       String variablesAsParameter = request.getParameter("variables");
+      String origin = request.getHeader("Origin");
 
       logger.info("QueryHandler - handleGraphql:: method - " + method);
       logger.info("QueryHandler - handleGraphql:: path - " + path);
@@ -56,11 +57,11 @@ public class QueryHandler extends AbstractHandler {
       logger.info("QueryHandler - handleGraphql:: query string - " + queryString);
       logger.info("QueryHandler - handleGraphql:: query parameter - " + queryAsParameter);
       logger.info("QueryHandler - handleGraphql:: variables parameter - " + variablesAsParameter);
+      logger.info("QueryHandler - handleGraphql:: Origin: " + origin);
 
       if (method.equalsIgnoreCase("OPTIONS")) {
-        logger.info("Options request received....");
         response.setStatus(HttpServletResponse.SC_OK);
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:8080");
+        response.setHeader("Access-Control-Allow-Origin", origin);
         response.setHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Headers", "content-type, accept");
