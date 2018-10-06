@@ -7,6 +7,12 @@ buildscript {
     }
 }
 
+plugins {
+  id 'java'
+  id 'groovy'
+  id 'idea'
+}
+
 apply plugin: 'com.github.johnrengelman.shadow'
 
 version = 1.0
@@ -29,6 +35,13 @@ dependencies {
     runtime 'org.apache.logging.log4j:log4j-core:2.8.2'
 
     testCompile 'junit:junit:4.11'
+
+    compile 'org.codehaus.groovy:groovy-all:2.4.15'
+    testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
+
+    testCompile "org.apache.geode:geode-dunit:$geodeVersion"
+    testCompile "org.apache.geode:geode-junit:$geodeVersion"
+
     testCompile 'org.assertj:assertj-core:3.9.0'
     testCompile "org.mockito:mockito-core:2.+"
     testCompile 'org.apache.httpcomponents:fluent-hc:4.5.1'
