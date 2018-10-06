@@ -1,15 +1,18 @@
 package org.g2ql.graphql;
 
+import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.client.ClientCacheFactory;
 import org.apache.geode.cache.client.ClientRegionShortcut;
 import org.apache.geode.cache.query.FunctionDomainException;
+import org.apache.geode.cache.query.Index;
 import org.apache.geode.cache.query.NameResolutionException;
 import org.apache.geode.cache.query.QueryInvocationTargetException;
 import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.TypeMismatchException;
 
+import graphql.ExecutionResult;
 import org.g2ql.categories.IntegrationTest;
 import org.g2ql.domain.Person;
 import org.apache.http.HttpResponse;
@@ -21,7 +24,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
+import java.util.Collection;
 
+import static org.apache.geode.cache.client.ClientRegionShortcut.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Category(IntegrationTest.class)
@@ -31,8 +36,8 @@ public class GraphqlExecutorIntegrationTest {
   public static void before() {
     ClientCache cache = new ClientCacheFactory().addPoolLocator("127.0.0.1", 10334)
         .set("log-level", "WARN").create();
-    Region<String, Person> person = cache
-        .<String, Person>createClientRegionFactory(ClientRegionShortcut.PROXY).create("Person");
+    Region<String, Person> person =
+        cache.<String, Person>createClientRegionFactory(PROXY).create("Person");
 
     Person james = new Person("1", "James", "Gosling", 60, "AWS");
     james.setAddress(james.new Address("1 Pike Street", "Seattle", "USA"));
@@ -45,7 +50,7 @@ public class GraphqlExecutorIntegrationTest {
     person.put("1", james);
     person.put("2", joshua);
 
-    Region foo = cache.createClientRegionFactory(ClientRegionShortcut.PROXY).create("Foo");
+    Region foo = cache.createClientRegionFactory(PROXY).create("Foo");
     foo.put("1", "One");
     foo.put("2", "Two");
   }

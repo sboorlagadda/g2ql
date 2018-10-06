@@ -9,6 +9,7 @@ import graphql.schema.GraphQLSchema;
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionAttributes;
+import org.apache.geode.cache.query.Index;
 import org.apache.geode.cache.query.QueryService;
 import org.g2ql.categories.UnitTest;
 import org.g2ql.domain.Person;
@@ -19,6 +20,7 @@ import org.junit.experimental.categories.Category;
 
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
@@ -40,13 +42,18 @@ public class GraphQLSchemaBuilderTest {
   @Test
   public void testPerson() {
     Region<String, Person> region = mock(Region.class);
+    Index firstNameIndex = mock(Index.class);
+    QueryService queryService = mock(QueryService.class);
     RegionAttributes<String, Person> regionAttributes = mock(RegionAttributes.class);
 
     doReturn(Stream.of(region).collect(toSet())).when(cache).rootRegions();
+    doReturn(queryService).when(cache).getQueryService();
+    doReturn(Stream.of(firstNameIndex).collect(toList())).when(queryService).getIndexes(region);
     doReturn("person").when(region).getName();
     doReturn(regionAttributes).when(region).getAttributes();
     doReturn(String.class).when(regionAttributes).getKeyConstraint();
     doReturn(Person.class).when(regionAttributes).getValueConstraint();
+    doReturn("firstName").when(firstNameIndex).getIndexedExpression();
 
     GraphQLSchema schema = new GraphQLSchemaBuilder(cache).build();
 
