@@ -70,14 +70,16 @@ public class QueryHandler extends AbstractHandler {
           path = request.getServletPath();
         }
         if (path.contentEquals("/graphql/schema.json")) {
-          query(IntrospectionQuery.INTROSPECTION_QUERY, response);
+          ExecutionResult result = query(IntrospectionQuery.INTROSPECTION_QUERY);
+          returnAsJson(response, result, origin);
         } else {
           if (queryAsParameter != null) {
             final Map<String, Object> variables = new HashMap<>();
             if (variablesAsParameter != null) {
               variables.putAll(deserializeVariables(variablesAsParameter));
             }
-            query(queryAsParameter, variables, response);
+            ExecutionResult result = query(queryAsParameter, variables);
+            returnAsJson(response, result, origin);
           } else {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             logger.info(
@@ -87,13 +89,14 @@ public class QueryHandler extends AbstractHandler {
       } else if (method.equalsIgnoreCase("POST")) {
         logger.info("QueryHandler - handleGraphql - serving post request......");
         GraphQLRequest graphQLRequest = mapper.readValue(requestBody, GraphQLRequest.class);
-        logger
-            .info("QueryHandler - handleGraphql - query from body:" + graphQLRequest + " received");
+        logger.info("QueryHandler - handleGraphql - query from body:" + graphQLRequest + " received");
         if (graphQLRequest.getOperationName() != null) {
-          query(graphQLRequest.getQuery(), graphQLRequest.getVariables(),
-              graphQLRequest.getOperationName(), response);
+          ExecutionResult result = query(graphQLRequest.getQuery(), graphQLRequest.getVariables(),
+              graphQLRequest.getOperationName());
+          returnAsJson(response, result, origin);
         } else {
-          query(graphQLRequest.getQuery(), graphQLRequest.getVariables(), response);
+          ExecutionResult result = query(graphQLRequest.getQuery(), graphQLRequest.getVariables());
+          returnAsJson(response, result, origin);
         }
       }
     } catch (IOException ioe) {
@@ -131,26 +134,21 @@ public class QueryHandler extends AbstractHandler {
     }
   }
 
-  private void query(String query, HttpServletResponse response) throws IOException {
-    ExecutionResult executionResult = executor.execute(query);
-    returnAsJson(response, executionResult);
+  private ExecutionResult query(String query) {
+    return executor.execute(query);
   }
 
-  private void query(String query, Map<String, Object> variables, HttpServletResponse response)
+  private ExecutionResult query(String query, Map<String, Object> variables) {
+    return executor.execute(query, variables);
+  }
+
+  private ExecutionResult query(String query, Map<String, Object> variables, String operationName) {
+    return executor.execute(query, variables, operationName);
+  }
+
+  private void returnAsJson(HttpServletResponse response, ExecutionResult executionResult, String origin)
       throws IOException {
-    ExecutionResult executionResult = executor.execute(query, variables);
-    returnAsJson(response, executionResult);
-  }
-
-  private void query(String query, Map<String, Object> variables, String operationName,
-      HttpServletResponse response) throws IOException {
-    ExecutionResult executionResult = executor.execute(query, variables, operationName);
-    returnAsJson(response, executionResult);
-  }
-
-  private void returnAsJson(HttpServletResponse response, ExecutionResult executionResult)
-      throws IOException {
-    response.setHeader("Access-Control-Allow-Origin", "http://localhost:8080");
+    response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST");
     response.setHeader("Access-Control-Allow-Credentials", "true");
     response.setHeader("Access-Control-Allow-Headers", "content-type, accept");
