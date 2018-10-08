@@ -6,8 +6,6 @@ start server --name=server --locators=127.0.0.1[10334]
 
 list members
 
-deploy --jar=build/libs/g2ql-1.0-all.jar
-
 deploy --jar=build/libs/domain-classes.jar
 
 create region --name=Foo --type=REPLICATE
@@ -19,7 +17,3 @@ create region --name=Student --type=REPLICATE --value-constraint=org.g2ql.domain
 create region --name=Post --type=REPLICATE --value-constraint=org.g2ql.domain.Post
 
 describe region --name=Person
-
-list functions
-
-execute function --id=g2ql-init

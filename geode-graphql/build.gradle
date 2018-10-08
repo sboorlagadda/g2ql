@@ -44,9 +44,15 @@ task domainClassesJar(type: Jar, dependsOn: compileJava) {
 
 def installDir = "$buildDir/apache-geode-${geodeVersion}"
 
-task installGeode(type: Copy) {
+task installGeode(type: Copy, dependsOn: [shadowJar]) {
     from zipTree(parent.configurations.geodeDistribution.singleFile)
     into buildDir
+    doLast {
+        copy {
+            from "${buildDir}/libs/geode-graphql-${version}.jar"
+            into "${installDir}/tools/Extensions"
+        }
+    }
 }
 
 task cleanServer {
@@ -59,7 +65,7 @@ clean.finalizedBy cleanServer
 
 def geodePath = "${System.env.PATH}${System.getProperty('path.separator')}${installDir}/bin"
 
-task start(type: Exec, dependsOn: [installGeode, domainClassesJar, shadowJar, cleanServer]) {
+task start(type: Exec, dependsOn: [installGeode, domainClassesJar, cleanServer]) {
     workingDir projectDir
     environment 'GEODE_HOME', installDir
     environment 'PATH', geodePath
