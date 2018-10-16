@@ -1,33 +1,23 @@
 package org.g2ql.graphql;
 
-import org.apache.geode.cache.Cache;
-import org.apache.geode.cache.Region;
-import org.apache.geode.cache.client.ClientCache;
-import org.apache.geode.cache.client.ClientCacheFactory;
-import org.apache.geode.cache.client.ClientRegionShortcut;
-import org.apache.geode.cache.query.FunctionDomainException;
-import org.apache.geode.cache.query.Index;
-import org.apache.geode.cache.query.NameResolutionException;
-import org.apache.geode.cache.query.QueryInvocationTargetException;
-import org.apache.geode.cache.query.SelectResults;
-import org.apache.geode.cache.query.TypeMismatchException;
+import static org.apache.geode.cache.client.ClientRegionShortcut.PROXY;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import graphql.ExecutionResult;
-import org.g2ql.categories.IntegrationTest;
-import org.g2ql.domain.Person;
+import java.io.IOException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicResponseHandler;
+import org.g2ql.categories.IntegrationTest;
+import org.g2ql.domain.Person;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.io.IOException;
-import java.util.Collection;
-
-import static org.apache.geode.cache.client.ClientRegionShortcut.*;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import org.apache.geode.cache.Region;
+import org.apache.geode.cache.client.ClientCache;
+import org.apache.geode.cache.client.ClientCacheFactory;
 
 @Category(IntegrationTest.class)
 public class GraphqlExecutorIntegrationTest {
@@ -106,8 +96,7 @@ public class GraphqlExecutorIntegrationTest {
     HttpResponse response = Request.Post("http://localhost:3000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
-    assertThat(responseString).isEqualTo(
-        "{\"data\":{\"Persons\":[{\"firstName\":\"Joshua\",\"age\":50},{\"firstName\":\"James\",\"age\":60}]}}");
+    assertThat(responseString).contains("James").contains("Joshua");
   }
 
   @Test
@@ -147,19 +136,5 @@ public class GraphqlExecutorIntegrationTest {
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo("{\"data\":{\"Foos\":[\"One\",\"Two\"]}}");
-  }
-
-  @Test
-  public void testOQLInQuery() throws NameResolutionException, TypeMismatchException,
-      QueryInvocationTargetException, FunctionDomainException {
-    ClientCache cache = new ClientCacheFactory().addPoolLocator("127.0.0.1", 10334)
-        .set("log-level", "WARN").create();
-
-    String[] predicates = {"Joshua", "James"};
-    String query = "select DISTINCT * from /Person x where x.firstName IN set($1, $2)";
-    SelectResults results =
-        (SelectResults) cache.getQueryService().newQuery(query).execute(predicates);
-
-    assertThat(results.asList()).isNotNull();
   }
 }
