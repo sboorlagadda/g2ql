@@ -14,9 +14,13 @@ create region --name=Foo --type=REPLICATE
 
 create region --name=Person --type=REPLICATE --value-constraint=org.g2ql.domain.Person
 
+create index --name=PersonFirstName --expression=firstName --region=/Person
+
 create region --name=Student --type=REPLICATE --value-constraint=org.g2ql.domain.Student
 
 create region --name=Post --type=REPLICATE --value-constraint=org.g2ql.domain.Post
+
+create index --name=PostAuthoredBy --expression=author --region=/Post
 
 describe region --name=Person
 

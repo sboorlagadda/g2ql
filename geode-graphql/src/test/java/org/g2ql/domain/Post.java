@@ -2,28 +2,18 @@ package org.g2ql.domain;
 
 import java.io.Serializable;
 
-import org.g2ql.annotation.GeodeGraphQLArgument;
 import org.g2ql.annotation.GeodeGraphQLDocumentation;
 
 @GeodeGraphQLDocumentation("A Post is a Post")
 public class Post implements Serializable {
-  @GeodeGraphQLArgument
   private String author;
-  @GeodeGraphQLDocumentation("Description about the image")
+  @GeodeGraphQLDocumentation("Title of the post")
   private String title;
-  @GeodeGraphQLDocumentation("Url of the image")
+  @GeodeGraphQLDocumentation("Contents of the post")
   private String contents;
 
   public Post() {
 
-  }
-
-  public String getAuthor() {
-    return author;
-  }
-
-  public void setAuthor(String author) {
-    this.author = author;
   }
 
   public String getTitle() {
@@ -40,5 +30,13 @@ public class Post implements Serializable {
 
   public void setContents(String contents) {
     this.contents = contents;
+  }
+
+  public String getAuthor() {
+    return author;
+  }
+
+  public void setAuthor(String author) {
+    this.author = author;
   }
 }

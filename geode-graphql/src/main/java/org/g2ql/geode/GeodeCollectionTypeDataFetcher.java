@@ -47,8 +47,10 @@ public class GeodeCollectionTypeDataFetcher implements DataFetcher {
         logger.info("GeodeCollectionTypeDataFetcher - oql - where clause:" + argumentName
             + ", predicate:" + predicates);
         try {
-          SelectResults results = (SelectResults) cache.getQueryService()
-              .newQuery(query(argumentName, predicates.size())).execute(predicates.toArray());
+          String query = query(argumentName, predicates.size());
+          logger.info("GeodeCollectionTypeDataFetcher - oql query:" + query);
+          SelectResults results =
+              (SelectResults) cache.getQueryService().newQuery(query).execute(predicates.toArray());
           if (results.isEmpty()) {
             return Collections.EMPTY_LIST;
           }

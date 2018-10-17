@@ -4,7 +4,9 @@ import static graphql.schema.GraphQLArgument.newArgument;
 import static graphql.schema.GraphQLFieldDefinition.newFieldDefinition;
 import static graphql.schema.GraphQLInputObjectType.newInputObject;
 import static graphql.schema.GraphQLObjectType.newObject;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -17,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +40,7 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
-import org.g2ql.annotation.GeodeGraphQLArgument;
+import org.apache.logging.log4j.Logger;
 import org.g2ql.annotation.GeodeGraphQLConnection;
 import org.g2ql.annotation.GeodeGraphQLDocumentation;
 import org.g2ql.annotation.GeodeGraphQLIgnore;
@@ -51,8 +54,11 @@ import org.g2ql.geode.GeodePutDataFetcher;
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionAttributes;
+import org.apache.geode.cache.query.Index;
+import org.apache.geode.internal.logging.LogService;
 
 class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
+  private static final Logger logger = LogService.getLogger();
   private final Map<Class<?>, GraphQLType> valueCache = new HashMap<>();
   private Cache cache;
 
@@ -68,8 +74,8 @@ class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
     Set<Region<?, ?>> userRegions = cache.rootRegions();
 
     userRegions.stream().filter(r -> isNotIgnored(r.getAttributes().getValueConstraint()))
-        .forEach(region -> queryType
-            .fields(getQueryFieldDefinition(region.getName(), region.getAttributes())));
+        .forEach(region -> queryType.fields(getQueryFieldDefinition(region.getName(),
+            region.getAttributes(), cache.getQueryService().getIndexes(region))));
 
     return queryType.build();
   }
@@ -129,7 +135,7 @@ class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
   }
 
   private List<GraphQLFieldDefinition> getQueryFieldDefinition(String regionName,
-      RegionAttributes<?, ?> regionAttributes) {
+      RegionAttributes<?, ?> regionAttributes, Collection<Index> indexes) {
     Class<?> valueClass = regionAttributes.getValueConstraint();
     if (valueClass == null)
       valueClass = String.class;
@@ -151,10 +157,15 @@ class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
       List<GraphQLArgument> arguments = new ArrayList<>();
       arguments.add(getArgument(regionAttributes.getKeyConstraint()));
 
-      // add arguments for each field
+      Set<String> indexedFields =
+          indexes.stream().map(Index::getIndexedExpression).collect(toSet());
+      logger.info("Indexed fields for region {} are {}", regionName,
+          indexedFields.stream().collect(joining(",")));
+      // add arguments for each indexed field
       arguments.addAll(Arrays.stream(regionAttributes.getValueConstraint().getDeclaredFields())
-          .filter(this::isGraphQLArgument).filter(f -> isBasicAttributeType(f.getType()))
-          .map(this::getArgumentForField).collect(toList()));
+          .filter(field -> indexedFields.contains(field.getName()))
+          .filter(field -> isBasicAttributeType(field.getType())).map(this::getArgumentForField)
+          .collect(toList()));
 
       queries.add(newFieldDefinition().name(regionName).description(schemaDocumentation)
           .type((GraphQLObjectType) getObjectType(regionName, valueClass))
@@ -163,10 +174,11 @@ class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
       List<GraphQLArgument> collectionArguments = new ArrayList<>();
       collectionArguments.add(getListArgument(regionAttributes.getKeyConstraint()));
 
-      // add arguments for each field
+      // add arguments for each indexed field
       collectionArguments
           .addAll(Arrays.stream(regionAttributes.getValueConstraint().getDeclaredFields())
-              .filter(this::isGraphQLArgument).filter(f -> isBasicAttributeType(f.getType()))
+              .filter(field -> indexedFields.contains(field.getName()))
+              .filter(field -> isBasicAttributeType(field.getType()))
               .map(this::getListArgumentForField).collect(toList()));
 
       queries.add(newFieldDefinition().name(regionName + "s").description(schemaDocumentation)
@@ -361,20 +373,6 @@ class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
       // return connection != null;
       for (Annotation a : annotatedElement.getAnnotations()) {
         if (GeodeGraphQLConnection.class.getName().equalsIgnoreCase(a.annotationType().getName())) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  private boolean isGraphQLArgument(AnnotatedElement annotatedElement) {
-    if (annotatedElement != null) {
-      // GeodeGraphQLArgument argument =
-      // annotatedElement.getDeclaredAnnotation(GeodeGraphQLArgument.class);
-      // return argument != null;
-      for (Annotation a : annotatedElement.getAnnotations()) {
-        if (GeodeGraphQLArgument.class.getName().equalsIgnoreCase(a.annotationType().getName())) {
           return true;
         }
       }

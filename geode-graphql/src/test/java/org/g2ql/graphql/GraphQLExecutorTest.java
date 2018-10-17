@@ -5,6 +5,7 @@ import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionAttributes;
 import org.apache.geode.cache.query.FunctionDomainException;
+import org.apache.geode.cache.query.Index;
 import org.apache.geode.cache.query.NameResolutionException;
 import org.apache.geode.cache.query.Query;
 import org.apache.geode.cache.query.QueryInvocationTargetException;
@@ -59,13 +60,17 @@ public class GraphQLExecutorTest {
 
     Region<String, Person> personRegion = mock(Region.class);
     RegionAttributes<String, Person> personRegionAttributes = mock(RegionAttributes.class);
+    Index firstNameIndex = mock(Index.class);
 
     doReturn(Stream.of(personRegion).collect(toSet())).when(cache).rootRegions();
+    doReturn(Stream.of(firstNameIndex).collect(toList())).when(queryService)
+        .getIndexes(personRegion);
     doReturn(personRegion).when(cache).getRegion("Person");
     doReturn("Person").when(personRegion).getName();
     doReturn(personRegionAttributes).when(personRegion).getAttributes();
     doReturn(String.class).when(personRegionAttributes).getKeyConstraint();
     doReturn(Person.class).when(personRegionAttributes).getValueConstraint();
+    doReturn("firstName").when(firstNameIndex).getIndexedExpression();
 
     doReturn(person1).when(personRegion).get("1");
     doReturn(personRegionData).when(personRegion).getAll(Stream.of("1", "2").collect(toList()));

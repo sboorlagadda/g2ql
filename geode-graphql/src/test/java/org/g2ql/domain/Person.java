@@ -1,17 +1,15 @@
 package org.g2ql.domain;
 
-import org.g2ql.annotation.GeodeGraphQLArgument;
-import org.g2ql.annotation.GeodeGraphQLConnection;
-import org.g2ql.annotation.GeodeGraphQLDocumentation;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.g2ql.annotation.GeodeGraphQLConnection;
+import org.g2ql.annotation.GeodeGraphQLDocumentation;
+
 @GeodeGraphQLDocumentation("A person is a person")
 public class Person implements Serializable {
   private String id;
-  @GeodeGraphQLArgument
   private String firstName;
   private String lastName;
   private int age;
