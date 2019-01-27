@@ -1,12 +1,13 @@
-package org.g2ql.server;
-
-import static org.assertj.core.api.Assertions.assertThat;
+package org.g2ql.serverextension.graphql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import org.g2ql.serverextension.graphql.GraphQLRequest;
 import org.junit.Test;
 
 import java.io.IOException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class JacksonDeserializationTest {
 

@@ -1,9 +1,8 @@
-package org.g2ql.graphql;
+package org.g2ql.serverextension.graphql;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.execute.Function;
 import org.apache.geode.cache.execute.FunctionContext;
-import org.g2ql.server.GraphqlServer;
 
 public class GraphqlInitFunction implements Function {
   public void execute(FunctionContext fc) {

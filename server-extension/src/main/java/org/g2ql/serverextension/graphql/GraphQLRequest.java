@@ -1,9 +1,9 @@
-package org.g2ql.server;
+package org.g2ql.serverextension.graphql;
 
 import java.util.HashMap;
 import java.util.Map;
 
-class GraphQLRequest {
+public class GraphQLRequest {
   private String query;
   private Map<String, Object> variables = new HashMap<>();
   private String operationName;
