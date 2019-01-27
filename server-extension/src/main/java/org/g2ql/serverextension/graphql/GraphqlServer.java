@@ -1,4 +1,4 @@
-package org.g2ql.server;
+package org.g2ql.serverextension.graphql;
 
 import org.apache.geode.cache.Cache;
 import org.g2ql.graphql.GraphQLExecutor;

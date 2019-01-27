@@ -22,8 +22,13 @@
 hs_err_pid*
 
 .idea
+*.iml
 .gradle
 build
 out
 
 dunit
+
+# geode locator and server directories
+server-extension/locator
+server-extension/server

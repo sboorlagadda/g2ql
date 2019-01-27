@@ -1,25 +1,24 @@
-package org.g2ql.server;
+package org.g2ql.serverextension.graphql;
 
 import graphql.ExecutionResult;
 import org.apache.geode.cache.Cache;
+import org.eclipse.jetty.server.Request;
 import org.g2ql.graphql.GraphQLExecutor;
+import org.g2ql.serverextension.graphql.QueryHandler;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
-import org.eclipse.jetty.server.Request;
-import org.mockito.Mockito;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+
 
 public class QueryHandlerTest {
   private Cache cache;

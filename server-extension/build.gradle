@@ -1,0 +1,103 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
+    }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+version = 1.0
+
+repositories {
+    maven {
+        url  "http://dl.bintray.com/andimarek/graphql-java"
+    }
+    maven {
+        url 'http://repository.apache.org/snapshots'
+    }
+}
+
+dependencies {
+    compile(project(':geode-graphql'))
+    compile 'org.eclipse.jetty:jetty-server:9.4.9.v20180320'
+    compile 'org.apache.logging.log4j:log4j-api:2.8.2'
+    compile 'commons-beanutils:commons-beanutils:1.9.3'
+    runtime 'org.apache.logging.log4j:log4j-core:2.8.2'
+
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.assertj:assertj-core:3.9.0'
+    testCompile "org.mockito:mockito-core:2.+"
+    testCompile 'org.apache.httpcomponents:fluent-hc:4.5.1'
+
+    testRuntime 'org.apache.logging.log4j:log4j-core:2.8.2'
+
+    testCompile project(':geode-graphql').sourceSets.test.output
+}
+
+task domainClassesJar(type: Jar, dependsOn: compileJava) {
+    archiveName = "domain-classes.jar"
+    from project(':geode-graphql').sourceSets.test.output
+    include '**/domain/**/*'
+}
+
+def installDir = "$buildDir/apache-geode-${geodeVersion}"
+
+task installGeode(type: Copy) {
+    from tarTree(parent.configurations.geodeDistribution.singleFile)
+    into buildDir
+}
+
+task cleanServer {
+    doLast {
+        delete 'locator'
+        delete 'server'
+    }
+}
+clean.finalizedBy cleanServer
+
+def geodePath = "${System.env.PATH}${System.getProperty('path.separator')}${installDir}/bin"
+
+task start(type: Exec, dependsOn: [installGeode, domainClassesJar, shadowJar, cleanServer]) {
+    workingDir projectDir
+    environment 'GEODE_HOME', installDir
+    environment 'PATH', geodePath
+    commandLine 'sh', '-c', "gfsh run --file=${projectDir}/scripts/start.gfsh"
+}
+
+task stop(type: Exec, dependsOn: installGeode) {
+    workingDir projectDir
+    environment 'GEODE_HOME', installDir
+    environment 'PATH', geodePath
+    commandLine 'sh', '-c', "gfsh run --file=${projectDir}/scripts/stop.gfsh"
+}
+
+shadowJar {
+    baseName = 'g2ql'
+    version = project.version
+    dependencies {
+        exclude(dependency('org.apache.geode:geode-core:.*'))
+    }
+}
+
+test {
+    useJUnit {
+        includeCategories 'org.g2ql.categories.UnitTest'
+    }
+}
+
+task integrationTest(type:Test) {
+    useJUnit {
+        includeCategories 'org.g2ql.categories.IntegrationTest'
+    }
+    testLogging {
+        events "PASSED", "STARTED", "FAILED", "SKIPPED"
+    }
+}
+
+task integrationTestWithSetup(dependsOn: [start, integrationTest, stop]) {
+    integrationTest.mustRunAfter start
+    stop.mustRunAfter integrationTest
+}

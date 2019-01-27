@@ -5,9 +5,10 @@ plugins {
 allprojects {
   repositories {
     mavenCentral()
-    maven {
-      url 'http://repository.apache.org/snapshots'
-    }
+    jcenter()
+    maven { url 'http://repository.apache.org/snapshots' }
+    maven { url "https://repo.spring.io/libs-snapshot" }
+    maven {	url "https://plugins.gradle.org/m2/" }
   }
 }
 

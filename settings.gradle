@@ -1,3 +1,4 @@
 rootProject.name = 'g2ql-parent'
 
 include 'geode-graphql'
+include 'server-extension'

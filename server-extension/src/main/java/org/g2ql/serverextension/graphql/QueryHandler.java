@@ -1,4 +1,4 @@
-package org.g2ql.server;
+package org.g2ql.serverextension.graphql;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -89,7 +89,8 @@ public class QueryHandler extends AbstractHandler {
       } else if (method.equalsIgnoreCase("POST")) {
         logger.info("QueryHandler - handleGraphql - serving post request......");
         GraphQLRequest graphQLRequest = mapper.readValue(requestBody, GraphQLRequest.class);
-        logger.info("QueryHandler - handleGraphql - query from body:" + graphQLRequest + " received");
+        logger
+            .info("QueryHandler - handleGraphql - query from body:" + graphQLRequest + " received");
         if (graphQLRequest.getOperationName() != null) {
           ExecutionResult result = query(graphQLRequest.getQuery(), graphQLRequest.getVariables(),
               graphQLRequest.getOperationName());
@@ -146,8 +147,8 @@ public class QueryHandler extends AbstractHandler {
     return executor.execute(query, variables, operationName);
   }
 
-  private void returnAsJson(HttpServletResponse response, ExecutionResult executionResult, String origin)
-      throws IOException {
+  private void returnAsJson(HttpServletResponse response, ExecutionResult executionResult,
+      String origin) throws IOException {
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST");
     response.setHeader("Access-Control-Allow-Credentials", "true");
