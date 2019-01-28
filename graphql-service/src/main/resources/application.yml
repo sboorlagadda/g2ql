@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: geode-graphql
+server:
+  port: 9000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+graphql:
+  servlet:
+    enabled: true
+    corsEnabled: true
+    actuator-metrics: true
+graphiql:
+  enabled: true
+  endpoint: /graphql
+  static:
+    basePath: /
+  pageTitle: G2QL Browser
+  props:
+    resources:
+      query: query.graphql
+      defaultQuery: defaultQuery.graphql
+      variables: variables.graphql
+    variables:
+      editorTheme: "solarized light"

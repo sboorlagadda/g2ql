@@ -51,17 +51,19 @@ class Person {
 
 ## Getting Started
 
-1. Build a shadow jar using gradle target `shadowJar`
+1. Build the server extension using gradle target `server-extension:shadowJar`
 
     ```
-    $ ./gradlew clean shadowJar
+    $ ./gradlew clean server-extension:shadowJar
     
     ```
-1. Deploy G2QL to any running Geode cacheserver
+1. Deploy the server extension to any running Geode cacheserver
     ```
-    gfsh> deploy geode-graphql-1.0.jar
-    gfsh> execute function --id=graphql-init
+    gfsh> deploy server-extension/builds/lib/g2ql-server-extension-1.0-all.jar
     ```
+1. Run `graphql-service` spring boot application which exposes both `/graphql` endpoint and `/graphiql`
+    ```
+    gfsh> ./gradlew :graphql-service:bootRun
 
 ### Running unit tests
 ```
