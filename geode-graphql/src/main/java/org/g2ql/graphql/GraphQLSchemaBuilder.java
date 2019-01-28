@@ -57,12 +57,12 @@ import org.apache.geode.cache.RegionAttributes;
 import org.apache.geode.cache.query.Index;
 import org.apache.geode.internal.logging.LogService;
 
-class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
+public class GraphQLSchemaBuilder extends GraphQLSchema.Builder {
   private static final Logger logger = LogService.getLogger();
   private final Map<Class<?>, GraphQLType> valueCache = new HashMap<>();
   private Cache cache;
 
-  GraphQLSchemaBuilder(Cache cache) {
+  public GraphQLSchemaBuilder(Cache cache) {
     this.cache = cache;
     super.query(getQueryType());
     super.mutation(getMutationType());
