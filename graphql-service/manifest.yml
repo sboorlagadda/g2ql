@@ -1,0 +1,9 @@
+---
+applications:
+- name: geode-graphql-endpoint
+  path: build/libs/graphql-endpoint-1.0.0-SNAPSHOT.jar
+  buildpack: java_buildpack_offline
+  env:
+     SPRING_PROFILES_ACTIVE:
+
+

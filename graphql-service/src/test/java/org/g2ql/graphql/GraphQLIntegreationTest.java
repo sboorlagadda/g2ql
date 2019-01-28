@@ -1,10 +1,8 @@
 package org.g2ql.graphql;
 
-import static org.apache.geode.cache.client.ClientRegionShortcut.PROXY;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
-import java.io.IOException;
-
+import org.apache.geode.cache.Region;
+import org.apache.geode.cache.client.ClientCache;
+import org.apache.geode.cache.client.ClientCacheFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -15,12 +13,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import org.apache.geode.cache.Region;
-import org.apache.geode.cache.client.ClientCache;
-import org.apache.geode.cache.client.ClientCacheFactory;
+import java.io.IOException;
+
+import static org.apache.geode.cache.client.ClientRegionShortcut.PROXY;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Category(IntegrationTest.class)
-public class GraphqlExecutorIntegrationTest {
+public class GraphQLIntegreationTest {
 
   @BeforeClass
   public static void before() {
@@ -49,7 +48,7 @@ public class GraphqlExecutorIntegrationTest {
   public void testGraphQLWithSinglePersonKey() throws IOException {
     String query =
         "{\"query\":\"{\\n  Person(key: \\\"1\\\") {\\n    firstName\\n    age\\n  }\\n}\\n\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString)
@@ -60,7 +59,7 @@ public class GraphqlExecutorIntegrationTest {
   public void testGraphQLWithSinglePersonKeyWithAddress() throws IOException {
     String query =
         "{\"query\":\"{\\n  Person(key: \\\"1\\\") {\\n    firstName\\n    age\\n    address {\\n     street\\n   city\\n}\\n}\\n\\n}\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo(
@@ -71,7 +70,7 @@ public class GraphqlExecutorIntegrationTest {
   public void testGraphQLWithMultiplePersonKeys() throws IOException {
     String query =
         "{\"query\":\"{\\n  Persons(key: [\\\"1\\\", \\\"2\\\"]) {\\n    firstName\\n    age\\n  }\\n}\\n\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo(
@@ -82,7 +81,7 @@ public class GraphqlExecutorIntegrationTest {
   public void testGraphQLWithSinglePersonByFirstName() throws IOException {
     String query =
         "{\"query\":\"{\\n  Person(firstName: \\\"James\\\") {\\n    firstName\\n    age\\n  }\\n}\\n\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString)
@@ -93,7 +92,7 @@ public class GraphqlExecutorIntegrationTest {
   public void testGraphQLWithMultiplePersonsByFirstName() throws IOException {
     String query =
         "{\"query\":\"{\\n  Persons(firstName: [\\\"James\\\", \\\"Joshua\\\"]) {\\n    firstName\\n    age\\n  }\\n}\\n\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).contains("James").contains("Joshua");
@@ -102,37 +101,16 @@ public class GraphqlExecutorIntegrationTest {
   @Test
   public void testGraphQLWithSingleFooKey() throws IOException {
     String query = "{\"query\":\"{\\nFoo(key : \\\"1\\\")\\n}\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo("{\"data\":{\"Foo\":\"One\"}}");
   }
 
   @Test
-  public void testGraphQLPutFooKeyValue() throws IOException {
-    String m =
-        "{\"query\":\"mutation PutFoo($key: String, $value: String) {\\n  putFoo(key: $key, value: $value)\\n}\\n\",\"variables\":{\"key\":\"3\",\"value\":\"Three\"},\"operationName\":\"PutFoo\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
-        .bodyString(m, ContentType.TEXT_PLAIN).execute().returnResponse();
-    String responseString = new BasicResponseHandler().handleResponse(response);
-    assertThat(responseString).isEqualTo("{\"data\":{\"putFoo\":\"Three\"}}");
-  }
-
-  @Test
-  public void testGraphQLPutPerson() throws IOException {
-    String m =
-        "{\"query\":\"mutation CreatePerson($key: String, $person: PersonInput) {\\n  putPerson(key: $key, Person:$person) {\\n    firstName\\n    lastName\\n    company\\n  }\\n}\\n\",\"variables\":{\"key\":\"3\",\"person\":{\"id\":\"3\",\"firstName\":\"Elon\",\"lastName\":\"Musk\"}},\"operationName\":\"CreatePerson\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
-        .bodyString(m, ContentType.TEXT_PLAIN).execute().returnResponse();
-    String responseString = new BasicResponseHandler().handleResponse(response);
-    assertThat(responseString).isEqualTo(
-        "{\"data\":{\"putPerson\":{\"firstName\":\"Elon\",\"lastName\":\"Musk\",\"company\":null}}}");
-  }
-
-  @Test
   public void testGraphQLWithMultipleFooKeys() throws IOException {
     String query = "{\"query\":\"{\\nFoos(key : [\\\"1\\\", \\\"2\\\"])\\n}\"}";
-    HttpResponse response = Request.Post("http://localhost:3000/graphql")
+    HttpResponse response = Request.Post("http://localhost:9000/graphql")
         .bodyString(query, ContentType.TEXT_PLAIN).execute().returnResponse();
     String responseString = new BasicResponseHandler().handleResponse(response);
     assertThat(responseString).isEqualTo("{\"data\":{\"Foos\":[\"One\",\"Two\"]}}");

@@ -6,7 +6,7 @@ start server --name=server --locators=127.0.0.1[10334]
 
 list members
 
-deploy --jar=build/libs/g2ql-1.0-all.jar
+deploy --jar=/Users/sai/workspace/g2ql/server-extension/build/libs/g2ql-server-extension-1.0-all.jar
 
 deploy --jar=build/libs/domain-classes.jar
 
@@ -25,5 +25,3 @@ create index --name=PostAuthoredBy --expression=author --region=/Post
 describe region --name=Person
 
 list functions
-
-execute function --id=g2ql-init
